@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>탐색 알고리즘의 평가와 개선 — Ocean AI Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080f;--surf:#0d1220;--surf2:#131929;--border:#1e2d4a;--text:#dde6f5;--dim:#8a9bbd;--accent:#22d3ee;--accent2:#60a5fa;--g1:#f87171;--g2:#fbbf24;--g3:#a78bfa;--g4:#34d399;--ok:#34d399;--no:#f87171}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7}
+.bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.25}
+.wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 20px}
+
+nav{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(16px);background:rgba(6,8,15,.85)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:54px}
+.back-link{font-size:13px;color:var(--dim);text-decoration:none;display:flex;align-items:center;gap:6px}
+.back-link:hover{color:var(--accent)}
+.logo-mini{font-size:13px;color:var(--dim)}
+.logo-mini span{color:var(--accent);font-weight:700}
+
+/* TOC bar */
+.toc-bar{position:sticky;top:54px;z-index:99;background:rgba(13,18,32,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:10px 0}
+.toc-inner{display:flex;gap:6px;overflow-x:auto;padding:0 20px;scrollbar-width:none}
+.toc-inner::-webkit-scrollbar{display:none}
+.toc-btn{font-size:12px;padding:6px 14px;border-radius:18px;background:var(--surf);border:1px solid var(--border);color:var(--dim);text-decoration:none;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.toc-btn:hover,.toc-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(34,211,238,.06)}
+
+.hero{padding:50px 0 35px}
+.hero-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);padding:5px 12px;border:1px solid var(--accent);border-radius:18px;background:rgba(34,211,238,.06);margin-bottom:18px}
+.hero h1{font-size:clamp(1.8rem,5vw,2.6rem);font-weight:900;line-height:1.2;margin-bottom:14px}
+.hero h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:15px;color:var(--dim);line-height:1.8;max-width:600px}
+
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0}
+
+.section{padding:48px 0}
+.s-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.s-title{font-size:1.5rem;font-weight:700;margin-bottom:6px}
+.s-desc{font-size:14px;color:var(--dim);margin-bottom:24px}
+
+/* Big concept callout */
+.concept{background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(96,165,250,.04));border:1px solid rgba(34,211,238,.25);border-radius:14px;padding:24px;margin-bottom:24px}
+.concept-q{font-size:14px;color:var(--accent);font-weight:500;margin-bottom:8px}
+.concept-a{font-size:16px;color:var(--text);line-height:1.8}
+.concept-a strong{color:var(--accent)}
+
+/* Algorithm cards */
+.algo-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:18px;border-left:4px solid var(--accent)}
+.algo-card.a1{border-left-color:var(--g1)}
+.algo-card.a2{border-left-color:var(--g2)}
+.algo-card.a3{border-left-color:var(--g3)}
+.algo-card.a4{border-left-color:var(--g4)}
+.algo-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.algo-emoji{font-size:32px}
+.algo-name{font-size:18px;font-weight:700}
+.algo-tag{font-size:11px;padding:3px 10px;border-radius:10px;font-family:'JetBrains Mono',monospace;background:var(--surf2);color:var(--dim);border:1px solid var(--border);margin-left:auto}
+.algo-def{font-size:14px;color:var(--text);line-height:1.8;margin-bottom:14px;padding:12px 14px;background:var(--surf2);border-radius:10px;border-left:2px solid var(--accent)}
+.algo-def strong{color:var(--accent)}
+
+.proscons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:540px){.proscons{grid-template-columns:1fr}}
+.pc-box{padding:12px 14px;border-radius:10px;font-size:13px}
+.pros{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2)}
+.cons{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2)}
+.pc-title{font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.pros .pc-title{color:var(--ok)}
+.cons .pc-title{color:var(--no)}
+.pc-list{list-style:none;padding:0}
+.pc-list li{padding:3px 0 3px 16px;position:relative;font-size:13px;color:var(--text);line-height:1.6}
+.pros .pc-list li::before{content:'+';position:absolute;left:0;color:var(--ok);font-weight:700}
+.cons .pc-list li::before{content:'−';position:absolute;left:0;color:var(--no);font-weight:700}
+
+.analogy{font-size:13px;color:var(--dim);padding:10px 14px;background:rgba(251,191,36,.05);border-left:2px solid var(--g2);border-radius:6px;margin-top:10px}
+.analogy strong{color:var(--g2)}
+
+/* Interactive grid widget */
+.demo{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:20px}
+.demo-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.demo-title{font-size:14px;font-weight:700;color:var(--accent)}
+.demo-controls{display:flex;gap:6px;flex-wrap:wrap}
+.btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surf2);color:var(--text);cursor:pointer;font-family:inherit;transition:all .2s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#06080f;border-color:var(--accent);font-weight:500}
+.btn.primary:hover{background:#0e9cb8}
+.btn.danger{background:transparent;color:var(--g1);border-color:var(--g1)}
+.btn.danger:hover{background:rgba(248,113,113,.1)}
+
+.grid-canvas-wrap{display:flex;justify-content:center;margin-bottom:14px}
+canvas{border:1px solid var(--border);border-radius:8px;cursor:crosshair;background:#0a0e1a;max-width:100%;height:auto}
+
+.status{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
+.status-item{display:flex;align-items:center;gap:6px;color:var(--dim)}
+.status-item .val{color:var(--text);font-weight:500;font-family:'JetBrains Mono',monospace}
+.status-item .dot{width:10px;height:10px;border-radius:50%}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);padding:10px 12px;background:var(--surf2);border-radius:8px}
+.lg-item{display:flex;align-items:center;gap:6px}
+.lg-box{width:16px;height:16px;border-radius:4px}
+
+.hint{font-size:12px;color:var(--dim);text-align:center;margin-top:8px}
+
+/* Comparison table */
+.compare-table{width:100%;border-collapse:collapse;background:var(--surf);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-top:14px;font-size:13px}
+.compare-table th{background:var(--surf2);padding:12px 10px;text-align:left;font-weight:700;color:var(--accent);font-size:12px;border-bottom:1px solid var(--border)}
+.compare-table td{padding:11px 10px;border-bottom:1px solid var(--border)}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table .row-title{font-weight:500;color:var(--text);background:var(--surf2)}
+.icon-ok{color:var(--ok);font-weight:700}
+.icon-no{color:var(--no);font-weight:700}
+.icon-mid{color:var(--g2);font-weight:700}
+
+/* Practice questions */
+.practice{background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(244,114,182,.03));border:1px solid rgba(167,139,250,.2);border-radius:14px;padding:22px;margin-bottom:14px}
+.p-num{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--g3);padding:3px 10px;border:1px solid var(--g3);border-radius:14px;background:rgba(167,139,250,.06);margin-bottom:10px}
+.p-q{font-size:14px;font-weight:500;margin-bottom:12px;line-height:1.7}
+.p-hint{font-size:12px;color:var(--dim);padding:10px 12px;background:var(--surf2);border-radius:8px;border-left:2px solid var(--g3)}
+.p-hint strong{color:var(--g3)}
+
+/* Code */
+.code-box{background:#0a0e1a;border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;color:#c9d1d9}
+.code-box .kw{color:#ff7b72}
+.code-box .fn{color:#79c0ff}
+.code-box .cm{color:#6b7fa3}
+.code-box .str{color:#a5d6ff}
+.code-box .num{color:#79c0ff}
+
+/* Summary box */
+.summary{background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(167,139,250,.04));border:1px solid var(--accent);border-radius:14px;padding:24px;margin-top:20px}
+.sum-title{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:12px}
+.sum-list{list-style:none;padding:0}
+.sum-list li{padding:6px 0 6px 20px;position:relative;font-size:14px}
+.sum-list li::before{content:'→';position:absolute;left:0;color:var(--accent)}
+
+footer{border-top:1px solid var(--border);padding:30px 0;text-align:center}
+footer p{font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a href="grade1.html" class="back-link">← 1학년 수업 목록</a>
+    <div class="logo-mini">Ocean <span>AI</span> Lab</div>
+  </div>
+</nav>
+
+<div class="toc-bar">
+  <div class="toc-inner">
+    <a href="#intro" class="toc-btn">시작</a>
+    <a href="#algorithms" class="toc-btn">4가지 알고리즘</a>
+    <a href="#compare" class="toc-btn">비교표</a>
+    <a href="#demo" class="toc-btn">🎮 직접 실행</a>
+    <a href="#evaluate" class="toc-btn">평가 기준</a>
+    <a href="#practice" class="toc-btn">연습 문제</a>
+    <a href="#summary" class="toc-btn">정리</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ═══════ HERO ═══════ -->
+  <div class="hero" id="intro">
+    <div class="hero-tag">2차시 · 1학년 영재학급</div>
+    <h1>탐색 <span>알고리즘</span>의 평가와 개선</h1>
+    <p class="hero-sub">드론이 출발지에서 목적지까지 가는 가장 좋은 경로를 찾는 방법은 여러 가지가 있어요. 오늘은 4가지 대표적인 알고리즘을 비교하면서, "좋은 알고리즘이란 무엇일까?"를 함께 생각해 봅시다.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ INTRO QUESTION ═══════ -->
+  <div class="section">
+    <div class="s-label">시작하기</div>
+    <div class="s-title">생각해 볼 질문</div>
+
+    <div class="concept">
+      <div class="concept-q">🤔 만약 여러분이 드론 배달 회사 사장이라면…</div>
+      <div class="concept-a">
+        같은 출발지에서 같은 목적지로 가는 경로가 <strong>수십 가지, 수백 가지</strong>가 있어요. 어떤 경로가 가장 좋은 경로일까요?<br>
+        가장 <strong>짧은 길</strong>? 가장 <strong>빠른 길</strong>? 가장 <strong>에너지가 적게 드는 길</strong>?<br>
+        어떤 기준으로 결정해야 할까요?
+      </div>
+    </div>
+
+    <div class="concept" style="background:linear-gradient(135deg,rgba(167,139,250,.08),rgba(244,114,182,.04));border-color:rgba(167,139,250,.25)">
+      <div class="concept-q" style="color:var(--g3)">💡 알고리즘이란?</div>
+      <div class="concept-a">
+        <strong style="color:var(--g3)">문제를 해결하는 방법(절차)</strong>이에요. 같은 문제도 <strong style="color:var(--g3)">여러 가지 알고리즘</strong>으로 풀 수 있어요. 어떤 건 빠르고, 어떤 건 정확하고, 어떤 건 단순해요. 우리는 오늘 <strong style="color:var(--g3)">4가지 알고리즘</strong>을 배우고 비교해 볼 거예요.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ 4 ALGORITHMS ═══════ -->
+  <div class="section" id="algorithms">
+    <div class="s-label">개념 학습</div>
+    <div class="s-title">4가지 탐색 알고리즘</div>
+    <div class="s-desc">각 알고리즘마다 작동 방식이 완전히 달라요. 비유와 함께 이해해 봅시다.</div>
+
+    <!-- 1. 시행착오법 -->
+    <div class="algo-card a1">
+      <div class="algo-head">
+        <div class="algo-emoji">🎲</div>
+        <div>
+          <div class="algo-name">① 시행착오법</div>
+          <div style="font-size:12px;color:var(--dim)">Trial and Error</div>
+        </div>
+        <div class="algo-tag" style="color:var(--g1);border-color:var(--g1)">무작정 시도</div>
+      </div>
+      <div class="algo-def">
+        여러 가지 방법을 <strong>그냥 무작정 시도</strong>해 보면서 답을 찾는 알고리즘이에요. "한 번 해 보지 뭐!"하고 일단 가 보는 거죠.
+      </div>
+      <div class="proscons">
+        <div class="pc-box pros">
+          <div class="pc-title">장점</div>
+          <ul class="pc-list">
+            <li>방법이 단순해서 이해하기 쉬워요</li>
+            <li>코드로 만들기 간단해요</li>
+            <li>운 좋으면 좋은 답을 발견해요</li>
+          </ul>
+        </div>
+        <div class="pc-box cons">
+          <div class="pc-title">단점</div>
+          <ul class="pc-list">
+            <li>시간이 엄청 오래 걸려요</li>
+            <li>가장 좋은 답을 찾는다는 보장이 없어요</li>
+            <li>경로가 많으면 비효율적이에요</li>
+          </ul>
+        </div>
+      </div>
+      <div class="analogy"><strong>🎯 비유:</strong> 눈을 가리고 미로를 걷는 것과 같아요. 벽에 부딪히면 다른 방향으로 돌리고, 또 부딪히면 또 돌리고… 운에 맡기는 거죠.</div>
+    </div>
+
+    <!-- 2. 그리디 -->
+    <div class="algo-card a2">
+      <div class="algo-head">
+        <div class="algo-emoji">🏃</div>
+        <div>
+          <div class="algo-name">② 그리디 알고리즘</div>
+          <div style="font-size:12px;color:var(--dim)">Greedy · "욕심쟁이"</div>
+        </div>
+        <div class="algo-tag" style="color:var(--g2);border-color:var(--g2)">눈앞의 최선</div>
+      </div>
+      <div class="algo-def">
+        매 순간 <strong>지금 당장 가장 좋아 보이는 선택</strong>을 하는 알고리즘이에요. "지금 이게 제일 좋아 보이니까 이걸로!"
+      </div>
+      <div class="proscons">
+        <div class="pc-box pros">
+          <div class="pc-title">장점</div>
+          <ul class="pc-list">
+            <li>매우 빠르게 계산해요</li>
+            <li>방법이 직관적이에요</li>
+            <li>실생활 문제에서 자주 통해요</li>
+          </ul>
+        </div>
+        <div class="pc-box cons">
+          <div class="pc-title">단점</div>
+          <ul class="pc-list">
+            <li>가장 좋은 답을 보장하지 못해요</li>
+            <li>한번 결정하면 되돌아갈 수 없어요</li>
+            <li>막다른 길에 빠질 수 있어요</li>
+          </ul>
+        </div>
+      </div>
+      <div class="analogy"><strong>🎯 비유:</strong> 보물찾기에서 매번 가장 가까운 보물만 줍는 사람! 멀리 있는 더 큰 보물은 못 보고 놓쳐요.</div>
+    </div>
+
+    <!-- 3. 분할정복 -->
+    <div class="algo-card a3">
+      <div class="algo-head">
+        <div class="algo-emoji">✂️</div>
+        <div>
+          <div class="algo-name">③ 분할정복</div>
+          <div style="font-size:12px;color:var(--dim)">Divide and Conquer</div>
+        </div>
+        <div class="algo-tag" style="color:var(--g3);border-color:var(--g3)">나눠서 풀기</div>
+      </div>
+      <div class="algo-def">
+        <strong>큰 문제를 작은 문제 여러 개로 쪼개서</strong> 각각 풀고, 그 결과를 합치는 알고리즘이에요. "한 번에 못 풀면 나눠서 풀자!"
+      </div>
+      <div class="proscons">
+        <div class="pc-box pros">
+          <div class="pc-title">장점</div>
+          <ul class="pc-list">
+            <li>복잡한 문제를 단순하게 만들어요</li>
+            <li>여러 드론이 동시에 작업할 수 있어요</li>
+            <li>문제 구조를 명확히 알 수 있어요</li>
+          </ul>
+        </div>
+        <div class="pc-box cons">
+          <div class="pc-title">단점</div>
+          <ul class="pc-list">
+            <li>어떻게 나눌지 정하기 어려워요</li>
+            <li>결과를 합치는 데 추가 계산이 필요해요</li>
+            <li>메모리를 많이 사용할 수 있어요</li>
+          </ul>
+        </div>
+      </div>
+      <div class="analogy"><strong>🎯 비유:</strong> 큰 피자를 4명이서 4조각으로 나눠서 먹는 것! 혼자 한 판 다 먹는 것보다 훨씬 빨라요.</div>
+    </div>
+
+    <!-- 4. 백트래킹 -->
+    <div class="algo-card a4">
+      <div class="algo-head">
+        <div class="algo-emoji">↩️</div>
+        <div>
+          <div class="algo-name">④ 백트래킹</div>
+          <div style="font-size:12px;color:var(--dim)">Backtracking · "되돌아가기"</div>
+        </div>
+        <div class="algo-tag" style="color:var(--g4);border-color:var(--g4)">시도+후퇴</div>
+      </div>
+      <div class="algo-def">
+        가능한 경로를 시도하다가 <strong>막다른 길을 만나면 이전 갈림길로 돌아가서</strong> 다른 방향을 시도하는 알고리즘이에요. "안 되면 다시 돌아가서 해 보지!"
+      </div>
+      <div class="proscons">
+        <div class="pc-box pros">
+          <div class="pc-title">장점</div>
+          <ul class="pc-list">
+            <li>모든 경로를 체계적으로 탐색해요</li>
+            <li>가장 좋은 답을 찾을 수 있어요</li>
+            <li>안 될 길은 일찍 포기해요 (가지치기)</li>
+          </ul>
+        </div>
+        <div class="pc-box cons">
+          <div class="pc-title">단점</div>
+          <ul class="pc-list">
+            <li>경로가 많으면 시간이 오래 걸려요</li>
+            <li>구현이 복잡해요 (스택이 필요)</li>
+            <li>최악의 경우 모든 경로를 다 봐야 해요</li>
+          </ul>
+        </div>
+      </div>
+      <div class="analogy"><strong>🎯 비유:</strong> 미로에서 길이 막히면 갈림길로 돌아가서 다른 방향을 시도하는 사람. 표시를 해 두기 때문에 같은 길을 두 번 안 가요!</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ COMPARISON ═══════ -->
+  <div class="section" id="compare">
+    <div class="s-label">한눈에 보기</div>
+    <div class="s-title">4가지 알고리즘 비교</div>
+    <div class="s-desc">각 알고리즘이 어떤 면에서 강하고 약한지 한 번에 보세요.</div>
+
+    <div style="overflow-x:auto">
+    <table class="compare-table">
+      <thead>
+        <tr><th></th><th>🎲 시행착오</th><th>🏃 그리디</th><th>✂️ 분할정복</th><th>↩️ 백트래킹</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="row-title">속도</td><td><span class="icon-no">✗</span> 느림</td><td><span class="icon-ok">✓</span> 매우 빠름</td><td><span class="icon-mid">○</span> 보통</td><td><span class="icon-mid">○</span> 보통~느림</td></tr>
+        <tr><td class="row-title">정확도</td><td>운에 따라</td><td><span class="icon-no">✗</span> 보장 안 됨</td><td><span class="icon-mid">○</span> 부분 최적</td><td><span class="icon-ok">✓</span> 보장 가능</td></tr>
+        <tr><td class="row-title">되돌아가기</td><td><span class="icon-no">✗</span> 못 함</td><td><span class="icon-no">✗</span> 못 함</td><td>—</td><td><span class="icon-ok">✓</span> 핵심 기능</td></tr>
+        <tr><td class="row-title">코드 만들기</td><td><span class="icon-ok">✓</span> 쉬움</td><td><span class="icon-ok">✓</span> 쉬움</td><td><span class="icon-mid">○</span> 보통</td><td><span class="icon-no">✗</span> 어려움</td></tr>
+        <tr><td class="row-title">핵심 전략</td><td>무작위 시도</td><td>눈앞의 최선</td><td>나눠서 풀기</td><td>후퇴 + 탐색</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="concept" style="margin-top:24px">
+      <div class="concept-q">💡 좋은 알고리즘이란?</div>
+      <div class="concept-a">
+        <strong>절대적인 최고의 알고리즘은 없어요!</strong> 상황에 맞게 골라서 써야 해요.<br>
+        빠르지만 부정확한 알고리즘 vs 느리지만 정확한 알고리즘 — 무엇을 우선할 것인가는 <strong>여러분의 선택</strong>이에요.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ INTERACTIVE DEMO ═══════ -->
+  <div class="section" id="demo">
+    <div class="s-label">🎮 직접 실행해 보기</div>
+    <div class="s-title">그리디 vs 백트래킹 비교</div>
+    <div class="s-desc">드론이 출발(S)에서 목적지(G)까지 가는 모습을 직접 확인해 보세요. <strong style="color:var(--accent)">캔버스를 클릭해서 장애물을 설치</strong>하고, 두 알고리즘이 어떻게 다르게 동작하는지 비교해 보세요!</div>
+
+    <div class="demo">
+      <div class="demo-head">
+        <div class="demo-title">🚁 드론 경로 시뮬레이터</div>
+        <div class="demo-controls">
+          <button class="btn primary" id="run-greedy">🏃 그리디 실행</button>
+          <button class="btn primary" id="run-bt" style="background:var(--g4);border-color:var(--g4)">↩️ 백트래킹 실행</button>
+          <button class="btn danger" id="reset">초기화</button>
+        </div>
+      </div>
+
+      <div class="status">
+        <div class="status-item"><div class="dot" style="background:var(--g2)"></div>그리디: <span class="val" id="greedy-result">—</span></div>
+        <div class="status-item"><div class="dot" style="background:var(--g4)"></div>백트래킹: <span class="val" id="bt-result">—</span></div>
+      </div>
+
+      <div class="grid-canvas-wrap">
+        <canvas id="grid" width="480" height="480"></canvas>
+      </div>
+
+      <div class="legend">
+        <div class="lg-item"><div class="lg-box" style="background:#34d399"></div>출발 (S)</div>
+        <div class="lg-item"><div class="lg-box" style="background:#f87171"></div>도착 (G)</div>
+        <div class="lg-item"><div class="lg-box" style="background:#1e2d4a"></div>장애물 (X)</div>
+        <div class="lg-item"><div class="lg-box" style="background:#fbbf24"></div>그리디 경로</div>
+        <div class="lg-item"><div class="lg-box" style="background:#a78bfa"></div>백트래킹 경로</div>
+      </div>
+
+      <div class="hint">💡 빈 칸을 클릭하면 장애물이 생기고, 장애물을 다시 클릭하면 없어져요</div>
+    </div>
+
+    <div class="concept" style="margin-top:20px;background:linear-gradient(135deg,rgba(251,191,36,.06),rgba(167,139,250,.04));border-color:rgba(251,191,36,.25)">
+      <div class="concept-q" style="color:var(--g2)">🎯 도전 미션</div>
+      <div class="concept-a">
+        <strong>그리디는 실패하지만, 백트래킹은 성공하는 상황을 만들어 보세요!</strong><br>
+        장애물을 잘 배치해서 그리디가 막다른 길에 빠지게 만들어 보세요. 백트래킹은 어떻게 우회할까요?
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ EVALUATION ═══════ -->
+  <div class="section" id="evaluate">
+    <div class="s-label">알고리즘 평가</div>
+    <div class="s-title">좋은 알고리즘의 기준</div>
+    <div class="s-desc">드론 경로 알고리즘을 평가할 때 우리는 무엇을 기준으로 봐야 할까요?</div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;border-left:3px solid var(--g1)">
+        <div style="font-size:22px;margin-bottom:8px">📏</div>
+        <div style="font-size:14px;font-weight:700;color:var(--g1);margin-bottom:6px">경로 길이</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7">출발지에서 목적지까지 총 이동 거리</div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;border-left:3px solid var(--g2)">
+        <div style="font-size:22px;margin-bottom:8px">⏱️</div>
+        <div style="font-size:14px;font-weight:700;color:var(--g2);margin-bottom:6px">소요 시간</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7">총 걸린 시간</div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;border-left:3px solid var(--g3)">
+        <div style="font-size:22px;margin-bottom:8px">🔋</div>
+        <div style="font-size:14px;font-weight:700;color:var(--g3);margin-bottom:6px">에너지 효율</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7">이동에 필요한 총 에너지</div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;border-left:3px solid var(--g4)">
+        <div style="font-size:22px;margin-bottom:8px">✓</div>
+        <div style="font-size:14px;font-weight:700;color:var(--g4);margin-bottom:6px">최적해 보장</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7">항상 최선의 경로를 찾는가</div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;border-left:3px solid var(--accent)">
+        <div style="font-size:22px;margin-bottom:8px">⚖️</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px">가중치</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7">위험 구역, 충전 구역 등 고려</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ PRACTICE ═══════ -->
+  <div class="section" id="practice">
+    <div class="s-label">연습 문제</div>
+    <div class="s-title">스스로 생각해 봅시다</div>
+    <div class="s-desc">각 알고리즘을 직접 적용해 보면서 깊이 이해해 봅시다.</div>
+
+    <div class="practice">
+      <span class="p-num">Q1 · 시행착오법</span>
+      <div class="p-q">시행착오법으로 드론이 출발지에서 도착지까지 갈 때, 드론은 어떤 방식으로 움직일까요? <strong>100개의 경로를 시도</strong>했다면 어떤 기준으로 '가장 좋은 경로'를 선택할 수 있을까요?</div>
+      <div class="p-hint"><strong>힌트:</strong> 무작위로 움직이면서 매번 도착지에 닿는 경로를 기록해 두고, 그중에서 가장 짧은 것을 고르는 식이에요. 어떤 기준이 좋을지 생각해 보세요.</div>
+    </div>
+
+    <div class="practice">
+      <span class="p-num">Q2 · 그리디</span>
+      <div class="p-q">드론이 현재 위치 <strong>(2, 3)</strong>에 있고 목적지가 <strong>(5, 7)</strong>일 때, 그리디 알고리즘은 어느 방향(상·하·좌·우)으로 움직일까요? 이유와 함께 설명해 보세요.</div>
+      <div class="p-hint"><strong>힌트:</strong> 4방향 각각에서 목적지까지의 <strong>맨해튼 거리</strong>를 계산해 보세요. 가장 거리가 짧아지는 방향을 선택합니다.<br>예) 위로 가면 (2,4) → 목적지까지 |5-2|+|7-4| = 6칸</div>
+    </div>
+
+    <div class="practice">
+      <span class="p-num">Q3 · 분할정복</span>
+      <div class="p-q"><strong>출발(0,0) → 도착(10,10)</strong>까지 가는 문제를 분할정복으로 푼다면, 어떻게 '작은 문제'로 나눌 수 있을까요? 중간 지점을 어떻게 정할까요?</div>
+      <div class="p-hint"><strong>힌트:</strong> 중간 지점을 (5,5)로 잡으면 문제가 둘로 나뉘어요: (0,0)→(5,5)와 (5,5)→(10,10). 각각이 더 작은 문제죠. 더 잘게 나눌 수도 있어요!</div>
+    </div>
+
+    <div class="practice">
+      <span class="p-num">Q4 · 백트래킹</span>
+      <div class="p-q"><strong>출발(0,0) → 목적지(3,3)</strong>, 장애물 위치 <strong>(1,1), (2,2)</strong>일 때 백트래킹은 어떻게 작동할까요? 단계별로 설명해 보세요. 또 "되돌아간다"는 것과 "방문한 곳을 기록한다"는 것이 왜 중요한가요?</div>
+      <div class="p-hint"><strong>힌트:</strong> ① (0,0)→(0,1)→(1,1)? 장애물! 되돌아가기 ② (0,1)→(0,2)→(1,2)... 이렇게 막히면 갈림길로 돌아가는 거예요.<br><strong>방문 기록</strong>이 없으면? → 같은 곳을 무한 반복할 수 있어요!</div>
+    </div>
+
+    <div class="practice" style="border-color:var(--accent);background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(96,165,250,.04))">
+      <span class="p-num" style="color:var(--accent);border-color:var(--accent)">🌟 도전</span>
+      <div class="p-q"><strong>두 알고리즘의 장점만 합친 나만의 알고리즘</strong>을 만들어 보세요!</div>
+      <div style="background:var(--surf2);border-radius:10px;padding:16px;font-size:13px;line-height:2;border:1px solid var(--border)">
+        <strong style="color:var(--accent)">① 알고리즘 이름:</strong> _______________<br>
+        <strong style="color:var(--accent)">② 작동 방식:</strong><br>
+        &nbsp;&nbsp;1단계: _______________<br>
+        &nbsp;&nbsp;2단계: _______________<br>
+        &nbsp;&nbsp;3단계: _______________<br>
+        <strong style="color:var(--accent)">③ 이 알고리즘의 장점:</strong> _______________<br>
+        <strong style="color:var(--accent)">④ 예상되는 문제점:</strong> _______________
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════ SUMMARY ═══════ -->
+  <div class="section" id="summary">
+    <div class="s-label">정리</div>
+    <div class="s-title">오늘 배운 내용</div>
+
+    <div class="summary">
+      <div class="sum-title">📚 핵심 정리</div>
+      <ul class="sum-list">
+        <li><strong style="color:var(--g1)">시행착오법</strong> — 무작정 시도. 단순하지만 비효율적</li>
+        <li><strong style="color:var(--g2)">그리디</strong> — 매 순간 최선 선택. 빠르지만 막다른 길에 빠질 수 있음</li>
+        <li><strong style="color:var(--g3)">분할정복</strong> — 큰 문제를 작은 문제로 나눠 해결. 복잡한 문제에 효과적</li>
+        <li><strong style="color:var(--g4)">백트래킹</strong> — 시도하다 막히면 되돌아가서 다른 길. 느리지만 정확함</li>
+        <li><strong style="color:var(--accent)">절대적 최고의 알고리즘은 없다!</strong> 상황에 맞는 선택이 핵심</li>
+      </ul>
+    </div>
+
+    <div class="concept" style="margin-top:20px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px">완벽한 알고리즘은 없다</div>
+      <div style="font-size:14px;color:var(--text)">상황에 맞는 선택이 진짜 최선이다 🚁</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Ocean AI Lab · 부산과학고등학교 · 김영아</p>
+  <p style="margin-top:4px;color:var(--border)">2026 중학교 1학년 영재학급 · 2차시</p>
+</footer>
+
+<script>
+// ═══════════════ Interactive Grid Demo ═══════════════
+const canvas = document.getElementById('grid');
+const ctx = canvas.getContext('2d');
+const GRID = 8, CELL = 60;
+let start = [0, 0], goal = [7, 7];
+let walls = new Set();
+walls.add('2,2'); walls.add('3,3'); walls.add('4,2');
+let greedyPath = null, btPath = null;
+
+function key(x, y) { return x + ',' + y; }
+
+function draw() {
+  ctx.clearRect(0, 0, 480, 480);
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, 480, 480);
+
+  // Grid lines
+  for (let i = 0; i <= GRID; i++) {
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 0.5;
+    ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, 480);
+    ctx.moveTo(0, i*CELL); ctx.lineTo(480, i*CELL);
+    ctx.stroke();
+  }
+
+  // Walls
+  walls.forEach(k => {
+    const [x, y] = k.split(',').map(Number);
+    const py = GRID - 1 - y;
+    ctx.fillStyle = '#1e2d4a';
+    ctx.fillRect(x*CELL + 2, py*CELL + 2, CELL-4, CELL-4);
+    ctx.fillStyle = '#dde6f5';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('X', x*CELL + CELL/2, py*CELL + CELL/2 + 6);
+  });
+
+  // Greedy path (yellow)
+  if (greedyPath && greedyPath.length > 1) {
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    greedyPath.forEach((p, i) => {
+      const cx = p[0]*CELL + CELL/2;
+      const cy = (GRID-1-p[1])*CELL + CELL/2;
+      if (i === 0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    });
+    ctx.stroke();
+  }
+
+  // Backtracking path (purple) — offset slightly
+  if (btPath && btPath.length > 1) {
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([6, 3]);
+    ctx.beginPath();
+    btPath.forEach((p, i) => {
+      const cx = p[0]*CELL + CELL/2 + 4;
+      const cy = (GRID-1-p[1])*CELL + CELL/2 + 4;
+      if (i === 0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Start
+  const sx = start[0]*CELL, sy = (GRID-1-start[1])*CELL;
+  ctx.fillStyle = '#34d399';
+  ctx.fillRect(sx + 4, sy + 4, CELL-8, CELL-8);
+  ctx.fillStyle = '#0a0e1a';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('S', sx + CELL/2, sy + CELL/2 + 7);
+
+  // Goal
+  const gx = goal[0]*CELL, gy = (GRID-1-goal[1])*CELL;
+  ctx.fillStyle = '#f87171';
+  ctx.fillRect(gx + 4, gy + 4, CELL-8, CELL-8);
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillText('G', gx + CELL/2, gy + CELL/2 + 7);
+}
+
+// Greedy algorithm
+function runGreedy() {
+  const path = [start.slice()];
+  let now = start.slice();
+  const been = new Set([key(now[0], now[1])]);
+
+  while (now[0] !== goal[0] || now[1] !== goal[1]) {
+    let best = null, bestDist = Infinity;
+    for (const [dx, dy] of [[0,1],[1,0],[0,-1],[-1,0]]) {
+      const nx = now[0]+dx, ny = now[1]+dy;
+      if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) continue;
+      if (walls.has(key(nx, ny))) continue;
+      if (been.has(key(nx, ny))) continue;
+      const d = Math.abs(goal[0]-nx) + Math.abs(goal[1]-ny);
+      if (d < bestDist) { bestDist = d; best = [nx, ny]; }
+    }
+    if (!best) return { success: false, path: path };
+    now = best;
+    path.push(now.slice());
+    been.add(key(now[0], now[1]));
+    if (path.length > 100) break;
+  }
+  return { success: true, path: path };
+}
+
+// Backtracking algorithm
+function runBT() {
+  const stack = [[start.slice(), [start.slice()], new Set([key(start[0], start[1])])]];
+  let bestPath = null;
+
+  while (stack.length > 0) {
+    const [now, path, visited] = stack.pop();
+    if (now[0] === goal[0] && now[1] === goal[1]) {
+      if (!bestPath || path.length < bestPath.length) bestPath = path;
+      continue;
+    }
+    if (path.length > 30) continue;
+    for (const [dx, dy] of [[0,1],[1,0],[0,-1],[-1,0]]) {
+      const nx = now[0]+dx, ny = now[1]+dy;
+      if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) continue;
+      if (walls.has(key(nx, ny))) continue;
+      if (visited.has(key(nx, ny))) continue;
+      const nv = new Set(visited);
+      nv.add(key(nx, ny));
+      stack.push([[nx, ny], [...path, [nx, ny]], nv]);
+    }
+  }
+  return bestPath ? { success: true, path: bestPath } : { success: false, path: [] };
+}
+
+// Canvas click — toggle wall
+canvas.addEventListener('click', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width, sy = canvas.height / r.height;
+  const gx = Math.floor((e.clientX - r.left) * sx / CELL);
+  const gy = GRID - 1 - Math.floor((e.clientY - r.top) * sy / CELL);
+  if (gx < 0 || gx >= GRID || gy < 0 || gy >= GRID) return;
+  if ((gx === start[0] && gy === start[1]) || (gx === goal[0] && gy === goal[1])) return;
+  const k = key(gx, gy);
+  if (walls.has(k)) walls.delete(k); else walls.add(k);
+  greedyPath = null; btPath = null;
+  document.getElementById('greedy-result').textContent = '—';
+  document.getElementById('bt-result').textContent = '—';
+  draw();
+});
+
+document.getElementById('run-greedy').addEventListener('click', () => {
+  const result = runGreedy();
+  greedyPath = result.path;
+  document.getElementById('greedy-result').textContent =
+    result.success ? `✓ 성공 (${result.path.length - 1}칸)` : '✗ 실패! 막다른 길';
+  draw();
+});
+
+document.getElementById('run-bt').addEventListener('click', () => {
+  const result = runBT();
+  btPath = result.path;
+  document.getElementById('bt-result').textContent =
+    result.success ? `✓ 성공 (${result.path.length - 1}칸)` : '✗ 경로 없음';
+  draw();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  walls.clear();
+  walls.add('2,2'); walls.add('3,3'); walls.add('4,2');
+  greedyPath = null; btPath = null;
+  document.getElementById('greedy-result').textContent = '—';
+  document.getElementById('bt-result').textContent = '—';
+  draw();
+});
+
+draw();
+
+// TOC scroll spy
+const tocBtns = document.querySelectorAll('.toc-btn');
+const sections = ['intro','algorithms','compare','demo','evaluate','practice','summary'];
+window.addEventListener('scroll', () => {
+  let current = sections[0];
+  for (const s of sections) {
+    const el = document.getElementById(s);
+    if (el && el.getBoundingClientRect().top < 200) current = s;
+  }
+  tocBtns.forEach(b => {
+    b.classList.toggle('active', b.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+
+</body>
+</html>
